@@ -8,6 +8,8 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 		WorRep_list_text = "Choose one of the replacer \n to remove it from the list.",
 		WorRep_list_is_empty = "The list is empty.",
 		WorRep_list_confirm_title = "Confirm the removal",
+		WorRep_manage_saved_replacements = "Managing saved replacements",
+		WorRep_manage_saved_replacements_text = "Select one of the words,\nto remove from the replacement.",
 		WorRep_replacements = " replacements:",
 		WorRep_added = " added",
 		WorRep_removed = " removed",
@@ -23,6 +25,8 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 			WorRep_list_text = "Выберете один из заменителей, \n чтобы удалить его из списка.",
 			WorRep_list_is_empty = "Список пуст.",
 			WorRep_list_confirm_title = "Подтвердите удаление",
+			WorRep_manage_saved_replacements = "Управление сохраненными заменами",
+			WorRep_manage_saved_replacements_text = "Выберите одно из слов,\nчтобы удалить из замены.",
 			WorRep_replacements = " замены:",
 			WorRep_added = " добавлено",
 			WorRep_removed = " удалено",
@@ -58,7 +62,6 @@ function WorRep:Load()
 	end
 end
 
-
 local function feed(text)
 	return managers.chat:feed_system_message(ChatManager.GAME, text)
 end
@@ -87,7 +90,11 @@ function WorRep:_dialog_word_list()
 			})
 		end
 		
-		table.insert(dialog_data.button_list, {})
+		table.insert(dialog_data.button_list, {
+			callback_func = function()
+				self:_dialog_word_list()
+			end
+		})
 	end
 	
 	table.insert(dialog_data.button_list, {
@@ -124,7 +131,11 @@ function WorRep:_dialog_check_replacements(word)
 		})
 	end
 	
-	table.insert(dialog_data.button_list, {})
+	table.insert(dialog_data.button_list, {
+		callback_func = function()
+			self:_dialog_check_replacements(word)
+		end
+	})
 	table.insert(dialog_data.button_list, {
 		text = managers.localization:text("menu_back"),
 		cancel_button = true,
@@ -157,14 +168,18 @@ function WorRep:_dialog_confirm_remove(word, name)
 					end
 					
 					WorRep:Save()
-					if type(WorRep.settings.strings[word]) == "table" and table.size(WorRep.settings.strings[word]) > 0 then
+					if WorRep.settings.strings[word] then
 						self:_dialog_check_replacements(word, WorRep.settings.strings[word])
 					else
 						self:_dialog_word_list()
 					end
 				end
 			},
-			{},
+			{
+				callback_func = function()
+					self:_dialog_confirm_remove(word, name)
+				end
+			},
 			{
 				text = managers.localization:text("menu_back"),
 				cancel_button = true,
@@ -267,73 +282,14 @@ end
 Hooks:PostHook(ChatGui, "enter_key_callback", "WoRe_change_chat_mode_text", function(self, ...)
 	local say = self._input_panel:child("say")
 	local input_text = self._input_panel:child("input_text")
-	local wr = utf8.to_upper("WR Editor:")
+	local wr = utf8.to_upper("Edit:")
 	local chat = utf8.to_upper(managers.localization:text("debug_chat_say"))
 	
 	if console and say:text() ~= wr then
 		say:set_text(wr)
-		fine_text(say)
-		say:set_rotation(360)
-		say:set_right(input_text:left() - 4)
 		say:set_color(tweak_data.screen_colors.skill_color)
 	elseif not console and say:text() ~= chat then
 		say:set_text(chat)
-		fine_text(say)
-		say:set_right(input_text:left() - 4)
 		say:set_color(tweak_data.screen_colors.text)
 	end
 end)
-
--- local data = ChatManager.send_message
--- function ChatManager:send_message(channel_id, sender, message)
-	-- local sep = string.find(message, "~") and "~" or string.find(message, "|||") and "|||" or string.find(message, "   ") and "   " or false
-	
-	-- local function m(str)
-		-- return message == str
-	-- end
-	
-	-- local function exclude(t, e)
-		-- local filtered = {}
-
-		-- for _, v in ipairs(t) do
-			-- if v ~= e then
-				-- table.insert(filtered, v)
-			-- end
-		-- end
-
-		-- return filtered
-	-- end
-
-	-- local list = sep and (m(sep.."1") or m(sep.."l") or m(sep.."list"))
-	-- local check = sep and (message:match(sep.."check") or message:match(sep.."2") or message:match(sep.."c"))
-	-- local find = sep and (m(sep.."3") or m(sep.."f") or m(sep.."find"))
-	
-	-- local words = sep and string.split(message, sep) or {}
-
-	-- if words[1] and words[2] then
-		-- WorRep.settings.strings[words[1]] = tostring(words[2])
-		-- WorRep:Save()
-		-- managers.chat:feed_system_message(ChatManager.GAME, words[1]..managers.localization:text("WorRep_string_replaced")..words[2])
-	-- elseif words[1] then
-		-- if table.has(WorRep.settings.strings, words[1]) then
-			-- WorRep.settings.strings[words[1]] = nil
-			-- WorRep:Save()
-			-- managers.chat:feed_system_message(ChatManager.GAME, managers.localization:text("WorRep_string_deleted", {WRD = words[1]}))
-		-- elseif list then
-			-- WorRep:_dialog_word_list()
-		-- elseif check then
-			-- if message:gsub(tostring(check), "") ~= "" then
-				-- LocalizationManager:add_localized_strings({WorRep_check_word = message:gsub(tostring(check), "")})
-				-- managers.chat:feed_system_message(ChatManager.GAME, managers.localization:text("WorRep_check_word"))
-			-- else
-				-- managers.chat:feed_system_message(ChatManager.GAME, managers.localization:text("WorRep_type_the_word"))
-			-- end
-		-- elseif find then
-			-- os.execute("start "..WorRep._setting_path)
-		-- else
-			-- managers.chat:feed_system_message(ChatManager.GAME, managers.localization:text("WorRep_string_not_exist"))
-		-- end
-	-- else
-		-- data(self, channel_id, sender, message)
-	-- end
--- end
