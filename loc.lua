@@ -3,8 +3,12 @@ function LocalizationManager:text(string_id, macros)
 	local str = data(self, string_id, macros)
 
 	if WorRep.settings.strings then
-		for str1, str2 in pairs(WorRep.settings.strings) do
-			str = str:gsub(str1, str2)
+		for word, replacement in pairs(WorRep.settings.strings) do
+			if type(replacement) == "table" then
+				str = str:gsub(word, table.random(replacement))
+			else
+				str = str:gsub(word, replacement)
+			end
 		end
 	end
 	
