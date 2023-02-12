@@ -8,6 +8,9 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 		WorRep_list_text = "Choose one of the replacer \n to remove it from the list.",
 		WorRep_list_is_empty = "The list is empty.",
 		WorRep_list_confirm_title = "Confirm the removal",
+		WorRep_replacements = " replacements:",
+		WorRep_added = " added",
+		WorRep_removed = " removed",
 	})
 		
 	if Idstring("russian"):key() == SystemInfo:language():key() then
@@ -20,6 +23,9 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 			WorRep_list_text = "Выберете один из заменителей, \n чтобы удалить его из списка.",
 			WorRep_list_is_empty = "Список пуст.",
 			WorRep_list_confirm_title = "Подтвердите удаление",
+			WorRep_replacements = " замены:",
+			WorRep_added = " добавлено",
+			WorRep_removed = " удалено",
 		})
 	end
 end)
@@ -94,24 +100,13 @@ end
 
 function WorRep:_dialog_check_replacements(word)
 	local dialog_data = {
-		title = managers.localization:text("WorRep_list_confirm_title"),
-		text = type(WorRep.settings.strings[word]) ~= "table" and tostring(word .. " -> " .. WorRep.settings.strings[word]) or "",
+		title = managers.localization:text("WorRep_manage_saved_replacements"),
+		text = managers.localization:text("WorRep_manage_saved_replacements_text"),
 		focus_button = 1,
-		button_list = {
-			{
-				text = managers.localization:text("cn_menu_accept_contract"),
-				callback_func = function()
-					WorRep.settings.strings[word] = nil
-					WorRep:Save()
-					self:_dialog_word_list()
-				end
-			}
-		}
+		button_list = {}
 	}
 
-	if type(WorRep.settings.strings[word]) == "table" then
-		dialog_data.title = managers.localization:text("WorRep_manage_saved_replacements")
-		dialog_data.button_list = {}
+	if type(WorRep.settings.strings[word]) == "table" and table.size(WorRep.settings.strings[word]) > 0 then
 		for _, name in pairs(WorRep.settings.strings[word]) do
 			table.insert(dialog_data.button_list, {
 				text = name,
@@ -120,6 +115,13 @@ function WorRep:_dialog_check_replacements(word)
 				end
 			})
 		end
+	else
+		table.insert(dialog_data.button_list, {
+			text = WorRep.settings.strings[word],
+			callback_func = function()
+				self:_dialog_confirm_remove(word, WorRep.settings.strings[word])
+			end
+		})
 	end
 	
 	table.insert(dialog_data.button_list, {})
@@ -143,15 +145,23 @@ function WorRep:_dialog_confirm_remove(word, name)
 			{
 				text = managers.localization:text("cn_menu_accept_contract"),
 				callback_func = function()
-					if table.size(WorRep.settings.strings[word]) > 2 then
-						table.delete(WorRep.settings.strings[word], name)
+					if type(WorRep.settings.strings[word]) == "table" then
+						if table.size(WorRep.settings.strings[word]) > 2 then
+							table.delete(WorRep.settings.strings[word], name)
+						else
+							table.delete(WorRep.settings.strings[word], name)
+							WorRep.settings.strings[word] = WorRep.settings.strings[word][1]
+						end
 					else
-						table.delete(WorRep.settings.strings[word], name)
-						WorRep.settings.strings[word] = WorRep.settings.strings[word][1]
+						WorRep.settings.strings[word] = nil
 					end
 					
 					WorRep:Save()
-					self:_dialog_check_replacements(word, WorRep.settings.strings[word])
+					if type(WorRep.settings.strings[word]) == "table" and table.size(WorRep.settings.strings[word]) > 0 then
+						self:_dialog_check_replacements(word, WorRep.settings.strings[word])
+					else
+						self:_dialog_word_list()
+					end
 				end
 			},
 			{},
@@ -169,16 +179,21 @@ function WorRep:_dialog_confirm_remove(word, name)
 end
 
 function WorRep:_add_words_to_the_list(list)
+	local add = 0
+	local rem = 0
 	if table.size(list) > 1 then
 		for id, replacement in pairs(list) do
 			if id ~= 1 then
 				if not WorRep.settings.strings[list[1]] then
 					WorRep.settings.strings[list[1]] = replacement
+					add = add + 1
 				elseif type(WorRep.settings.strings[list[1]]) == "string" then
 					if WorRep.settings.strings[list[1]] == replacement then
 						WorRep.settings.strings[list[1]] = nil
+						rem = rem + 1
 					else
 						WorRep.settings.strings[list[1]] = {WorRep.settings.strings[list[1]], replacement}
+						add = add + 1
 					end
 				elseif type(WorRep.settings.strings[list[1]]) == "table" then
 					if table.contains(WorRep.settings.strings[list[1]], replacement) then
@@ -188,14 +203,19 @@ function WorRep:_add_words_to_the_list(list)
 							table.delete(WorRep.settings.strings[list[1]], replacement)
 							WorRep.settings.strings[list[1]] = WorRep.settings.strings[list[1]][1]
 						end
+						rem = rem + 1
 					else
 						table.insert(WorRep.settings.strings[list[1]], replacement)
+						add = add + 1
 					end
 				end
-
-				WorRep:Save()
 			end
 		end
+
+		local added = add > 0 and "\n"..add..managers.localization:text("WorRep_added") or ""
+		local removed = rem > 0 and "\n"..rem..managers.localization:text("WorRep_removed") or ""
+		feed("'" .. list[1] .. "'".. managers.localization:text("WorRep_replacements") .. added .. removed)
+		WorRep:Save()
 	else
 		feed(managers.localization:text("WorRep_type_the_word"))
 	end
@@ -247,15 +267,17 @@ end
 Hooks:PostHook(ChatGui, "enter_key_callback", "WoRe_change_chat_mode_text", function(self, ...)
 	local say = self._input_panel:child("say")
 	local input_text = self._input_panel:child("input_text")
+	local wr = utf8.to_upper("WR Editor:")
+	local chat = utf8.to_upper(managers.localization:text("debug_chat_say"))
 	
-	if console then
-		say:set_text(utf8.to_upper("Console:"))
+	if console and say:text() ~= wr then
+		say:set_text(wr)
 		fine_text(say)
 		say:set_rotation(360)
 		say:set_right(input_text:left() - 4)
 		say:set_color(tweak_data.screen_colors.skill_color)
-	else
-		say:set_text(utf8.to_upper(managers.localization:text("debug_chat_say")))
+	elseif not console and say:text() ~= chat then
+		say:set_text(chat)
 		fine_text(say)
 		say:set_right(input_text:left() - 4)
 		say:set_color(tweak_data.screen_colors.text)
