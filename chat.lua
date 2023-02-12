@@ -1,8 +1,5 @@
 Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)				
 	LocalizationManager:add_localized_strings({
-		WorRep_string_replaced = " will be replaced to ",
-		WorRep_string_deleted = "$WRD; will be removed from the word replacement list.",
-		WorRep_string_not_exist = "This word is not exist in the list.",
 		WorRep_type_the_word = "Please type the words after the tag.",
 		WorRep_list_title = "Word Replacer List",
 		WorRep_list_text = "Choose one of the replacer \n to remove it from the list.",
@@ -17,9 +14,6 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 		
 	if Idstring("russian"):key() == SystemInfo:language():key() then
 		LocalizationManager:add_localized_strings({
-			WorRep_string_replaced = " будет заменено на ",
-			WorRep_string_deleted = "$WRD; будет удален из списка замены слов.",
-			WorRep_string_not_exist = "Этого слова нет в списке.",
 			WorRep_type_the_word = "Пожалуйста введите слова после тэга.",
 			WorRep_list_title = "Список заменителей слов",
 			WorRep_list_text = "Выберете один из заменителей, \n чтобы удалить его из списка.",
@@ -254,9 +248,7 @@ function ChatManager:send_message(channel_id, sender, message)
 	end
 	
 	if console then
-		if message:find("/") then
-			WorRep:_add_words_to_the_list(string.split(message, "/"))
-		elseif message:find("help") == 1 and 4 then
+		if message:find("help") == 1 and 4 then
 			if message == "help /" then
 				feed("\nAdd replacements: [word]/[replacement1]/[replacement2]/...\nIf you typing existing replacement word it will be removed from the table.")
 			elseif message == "help list" or message == "help l" or message == "help 1" then
@@ -266,6 +258,8 @@ function ChatManager:send_message(channel_id, sender, message)
 			else
 				feed("\n/" .. "\nlist, l, 1," .. "\nfile")
 			end
+		elseif message:find("/") then
+			WorRep:_add_words_to_the_list(string.split(message, "/"))
 		elseif message == "1" or message == "l" or message == "list" then
 			WorRep:_dialog_word_list()
 		elseif message == "file" then
