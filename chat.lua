@@ -237,7 +237,7 @@ end)
 local console = false
 local data = ChatManager.send_message
 function ChatManager:send_message(channel_id, sender, message)
-	if message == "`" or message == "~" then
+	if message == "EDIT" or message == "edit" or message == "'" or message == "`" or message == "~" then
 		if not console then
 			console = true
 			return
