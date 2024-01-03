@@ -96,7 +96,7 @@ function WorRep:_dialog_word_list()
 		cancel_button = true
 	})		
 	
-	managers.system_menu:show_buttons(dialog_data)
+	managers.system_menu:show(dialog_data)
 end
 
 function WorRep:_dialog_check_replacements(word)
@@ -138,7 +138,7 @@ function WorRep:_dialog_check_replacements(word)
 		end
 	})
 	
-	managers.system_menu:show_buttons(dialog_data)
+	managers.system_menu:show(dialog_data)
 end
 
 function WorRep:_dialog_confirm_remove(word, name)
@@ -184,7 +184,7 @@ function WorRep:_dialog_confirm_remove(word, name)
 		}
 	}
 	
-	managers.system_menu:show_buttons(dialog_data)
+	managers.system_menu:show(dialog_data)
 end
 
 function WorRep:_add_words_to_the_list(list)
