@@ -10,6 +10,11 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 		WorRep_replacements = " replacements:",
 		WorRep_added = " added",
 		WorRep_removed = " removed",
+		WorRep_chat_replacements = "Replace words in the chat: ",
+		WorRep_replacements_help = 'Add replacements: [word]/[replacement1]/[replacement2]/...\nIf you typing existing replacement word it will be removed from the table.',
+		WorRep_replacements_list_help = "Opens replacements list.",
+		WorRep_replacements_file_help = "Opens replacements save file.",
+		WorRep_replacements_repchat_help = [[Enable\Disable word replacement in chat messages.]],
 	})
 		
 	if Idstring("russian"):key() == SystemInfo:language():key() then
@@ -24,6 +29,11 @@ Hooks:Add("LocalizationManagerPostInit", "WorRep_loc", function(...)
 			WorRep_replacements = " заменители:",
 			WorRep_added = " добавлено",
 			WorRep_removed = " удалено",
+			WorRep_chat_replacements = "Заменять слова в чате: ",
+			WorRep_replacements_help = 'Добавить заменители: [word]/[replacement1]/[replacement2]/...\nЕсли вы запишите существующий заменитель, это слово будет удалено из заменителей.',
+			WorRep_replacements_list_help = "Открыть список заменителей.",
+			WorRep_replacements_file_help = "Открыть файл со списоком заменителей.",
+			WorRep_replacements_repchat_help = [[Включить\выключить замену слов в сообщениях чата.]],
 		})
 	end
 end)
@@ -250,13 +260,15 @@ function ChatManager:send_message(channel_id, sender, message)
 	if console then
 		if message:find("help") == 1 and 4 then
 			if message == "help /" then
-				feed("\nAdd replacements: [word]/[replacement1]/[replacement2]/...\nIf you typing existing replacement word it will be removed from the table.")
+				feed(managers.localization:text("WorRep_replacements_help"))
 			elseif message == "help list" or message == "help l" or message == "help 1" then
-				feed("Opens replacements list.")
+				feed(managers.localization:text("WorRep_replacements_list_help"))
 			elseif message == "help file" then
-				feed("Opens replacements save file.")
+				feed(managers.localization:text("WorRep_replacements_file_help"))
+			elseif message == "help repchat" then
+				feed(managers.localization:text("WorRep_replacements_repchat_help"))
 			else
-				feed("\n/" .. "\nlist, l, 1," .. "\nfile")
+				feed("help [...]\n/\nlist, l, 1\nfile\nrepchat")
 			end
 		elseif message:find("/") then
 			WorRep:_add_words_to_the_list(string.split(message, "/"))
@@ -264,11 +276,30 @@ function ChatManager:send_message(channel_id, sender, message)
 			WorRep:_dialog_word_list()
 		elseif message == "file" then
 			os.execute("start "..WorRep._setting_path)
+		elseif message == "repchat" then
+			if WorRep.settings.replace_chat_messages then
+				WorRep.settings.replace_chat_messages = nil
+				feed(managers.localization:text("WorRep_chat_replacements") .. managers.localization:text("menu_off"))
+			else
+				WorRep.settings.replace_chat_messages = true
+				feed(managers.localization:text("WorRep_chat_replacements") .. managers.localization:text("menu_on"))
+			end
+			WorRep:Save()
 		else
 			LocalizationManager:add_localized_strings({WorRep_check_word = message})
 			feed(managers.localization:text("WorRep_check_word"))
 		end
 	else
+		if WorRep.settings.replace_chat_messages and WorRep.settings.strings then
+			for word, replacement in pairs(WorRep.settings.strings) do
+				if type(replacement) == "table" then
+					message = message:gsub(word, table.random(replacement))
+				else
+					message = message:gsub(word, replacement)
+				end
+			end
+		end
+		
 		data(self, channel_id, sender, message)
 	end
 end
